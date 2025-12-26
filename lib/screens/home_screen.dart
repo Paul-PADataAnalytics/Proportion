@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +9,7 @@ import '../models/app_state.dart';
 import '../widgets/grid_painter.dart';
 import '../widgets/toolbar_widget.dart';
 import '../widgets/grid_gesture_detector.dart';
+import '../services/image_service.dart'; // For ExportFormat
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -29,57 +30,125 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _exportImage(BuildContext context) async {
-    final state = context.read<AppState>();
-    final bytes = await state.exportImage();
-    if (bytes == null) return;
+  Future<void> _exportImage(BuildContext context, ExportFormat format) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Dialog(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Text(
+            "Please wait, exporting...",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ),
+    );
 
-    final String fileName = state.fileName ?? "proportion_export.png";
-    final String nameWithoutExt = fileName.split('.').first;
-    final String exportName = "${nameWithoutExt}_gridded.png";
+    try {
+      final state = context.read<AppState>();
 
-    if (Platform.isAndroid || Platform.isIOS) {
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$exportName');
-      await file.writeAsBytes(bytes);
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'Exported from Proportion');
-    } else {
-      final FileSaveLocation? result = await getSaveLocation(
-        suggestedName: exportName,
-      );
-      if (result != null) {
-        final XFile textFile = XFile.fromData(
-          bytes,
-          mimeType: 'image/png',
-          name: exportName,
-        );
-        await textFile.saveTo(result.path);
+      // Artificial delay to ensure dialog shows up and animation starts
+      // This helps if the subsequent compute() call blocks the UI thread momentarily during serialization (Web Debug mode)
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final bytes = await state.exportImage(format: format);
+
+      // Close dialog
+      if (context.mounted) Navigator.pop(context);
+
+      if (bytes == null) return;
+
+      final String fileName = state.fileName ?? "proportion_export";
+      final String nameWithoutExt = fileName.split('.').first;
+
+      String ext = "png";
+      if (format == ExportFormat.jpg) ext = "jpg";
+      if (format == ExportFormat.pdf) ext = "pdf";
+
+      final String exportName = "${nameWithoutExt}_gridded.$ext";
+
+      String mime = 'image/png';
+      if (format == ExportFormat.jpg) mime = 'image/jpeg';
+      if (format == ExportFormat.pdf) mime = 'application/pdf';
+
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
+        final tempDir = await getTemporaryDirectory();
+        final path = '${tempDir.path}/$exportName';
+
+        final xFile = XFile.fromData(bytes, mimeType: mime, name: exportName);
+        await xFile.saveTo(path);
+
+        final fileToShare = XFile(path, mimeType: mime, name: exportName);
+        await Share.shareXFiles([
+          fileToShare,
+        ], text: 'Exported from Proportion');
+      } else {
+        // Desktop or Web
+        if (kIsWeb) {
+          final XFile textFile = XFile.fromData(
+            bytes,
+            mimeType: mime,
+            name: exportName,
+          );
+          await textFile.saveTo(exportName);
+        } else {
+          final FileSaveLocation? result = await getSaveLocation(
+            suggestedName: exportName,
+          );
+          if (result != null) {
+            final XFile textFile = XFile.fromData(
+              bytes,
+              mimeType: mime,
+              name: exportName,
+            );
+            await textFile.saveTo(result.path);
+          }
+        }
+      }
+    } catch (e) {
+      // Close dialog if error
+      if (context.mounted) Navigator.pop(context);
+      debugPrint("Export Error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Export failed: $e")));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool showCamera = Platform.isAndroid || Platform.isIOS;
+    bool showCamera =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
 
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // On desktop we prefer side bar usually, unless window is very narrow.
-            // Requirement: "on phones and tablets, when in a portrait mode, or [..] taller than wide => bottom"
-            // "on phones and tablets, when in a landscape mode, or [..] wider than tall => right"
-            // "on desktops, the tool bar is at the right side of the screen"
-
             bool isDesktop =
-                Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+                !kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.linux ||
+                    defaultTargetPlatform == TargetPlatform.windows ||
+                    defaultTargetPlatform == TargetPlatform.macOS);
+            // On Web we also treat as desktop-like if wide usually?
+            // "on desktops, the tool bar is at the right side of the screen"
+            if (kIsWeb)
+              isDesktop =
+                  true; // Treat web as desktop regarding layout preference?
+            // "Right for Landscape/Wide/Desktop".
+
             bool isWide = constraints.maxWidth > constraints.maxHeight;
 
             bool useSideBar;
             if (isDesktop) {
-              useSideBar = true; // Always right on desktop
+              useSideBar = true; // Always right on desktop (and web now)
             } else {
               useSideBar = isWide; // Landscape/Wide on mobile
             }
@@ -87,7 +156,7 @@ class HomeScreen extends StatelessWidget {
             final toolbar = ToolbarWidget(
               onOpen: () => _pickImage(context),
               onCamera: () => _takePhoto(context),
-              onExport: () => _exportImage(context),
+              onExport: (format) => _exportImage(context, format),
               showCamera: showCamera,
             );
 
@@ -150,16 +219,10 @@ class HomeScreen extends StatelessWidget {
               );
             } else {
               // Portrait - Bottom bar
-              // We might want to limit height of toolbar or let it scroll?
-              // Let's give it a fixed height or flexible.
-              // A bottom sheet style but persistent.
               return Column(
                 children: [
                   canvasArea,
-                  SizedBox(
-                    height: 300, // Fixed height for bottom toolbar
-                    child: toolbar,
-                  ),
+                  SizedBox(height: 300, child: toolbar),
                 ],
               );
             }

@@ -20,12 +20,17 @@ void main() {
       ),
     );
 
-    // Verify we have action buttons
+    // Verify Grid Mode selector is present
+    expect(find.text('Grid Mode'), findsOneWidget);
+
+    // Verify dynamic inputs for default mode (SquareFixed)
+    expect(find.text('Columns'), findsOneWidget);
+
+    // Verify toolbar actions
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.save_alt), findsOneWidget);
 
     // Verify Grid Settings header is present (part of Toolbar)
-    expect(find.text('Grid Settings'), findsOneWidget);
 
     // Verify no image selected initially
     expect(find.text('No image selected'), findsOneWidget);

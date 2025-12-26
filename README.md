@@ -70,3 +70,10 @@ The image can be exported back to the users OS as a PNG file.  The original imag
     - **Scale**: Pinch to zoom (Touch) or Mouse Wheel (Desktop).
     - **Move**: Drag to pan grid.
     - **Rotate**: Twist (Touch) or Right-Click Drag (Desktop).
+- **Advanced Grid Modes (V3)**:
+    - **Square**: Fixed cell size.
+    - **Square (Fixed)**: Fixed column count.
+    - **Rectangle**: Width/Height control.
+    - **Rectangle (Fixed)**: Columns/Rows control.
+    - **Circle**: Radial sizing and segments.
+- **Improved Export**: Export to PNG, JPG, or PDF.

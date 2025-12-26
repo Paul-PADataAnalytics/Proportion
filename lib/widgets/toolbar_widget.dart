@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../models/app_state.dart';
 import '../models/grid_model.dart';
+import '../services/image_service.dart';
 
 class ToolbarWidget extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onCamera;
-  final VoidCallback onExport;
+  final Function(ExportFormat) onExport; // Change signature
   final bool showCamera;
 
   const ToolbarWidget({
@@ -17,6 +19,41 @@ class ToolbarWidget extends StatelessWidget {
     required this.showCamera,
   });
 
+  void _showExportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Export Image"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text("PNG Image"),
+              onTap: () {
+                Navigator.pop(ctx);
+                onExport(ExportFormat.png);
+              },
+            ),
+            ListTile(
+              title: const Text("JPG Image"),
+              onTap: () {
+                Navigator.pop(ctx);
+                onExport(ExportFormat.jpg);
+              },
+            ),
+            ListTile(
+              title: const Text("PDF Document"),
+              onTap: () {
+                Navigator.pop(ctx);
+                onExport(ExportFormat.pdf);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
@@ -24,170 +61,76 @@ class ToolbarWidget extends StatelessWidget {
         return Container(
           color: Theme.of(context).cardColor,
           child: ListView(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             children: [
               // Actions
               Wrap(
                 alignment: WrapAlignment.spaceEvenly,
                 spacing: 8,
                 children: [
-                  IconButton.filledTonal(
-                    icon: const Icon(Icons.folder_open),
+                  ActionChip(
+                    avatar: const Icon(Icons.folder_open),
+                    label: const Text("Open"),
                     onPressed: onOpen,
-                    tooltip: 'Open',
                   ),
                   if (showCamera)
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.camera_alt),
+                    ActionChip(
+                      avatar: const Icon(Icons.camera_alt),
+                      label: const Text("Camera"),
                       onPressed: onCamera,
-                      tooltip: 'Camera',
                     ),
-                  IconButton.filledTonal(
-                    icon: const Icon(Icons.save_alt),
-                    onPressed: onExport,
-                    tooltip: 'Export',
+                  ActionChip(
+                    avatar: const Icon(Icons.save_alt),
+                    label: const Text("Export"),
+                    onPressed: () => _showExportDialog(context),
                   ),
                 ],
               ),
               const Divider(),
-              const Text(
-                "Grid Settings",
-                style: TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
 
-              // Grid Type
-              DropdownButtonFormField<GridType>(
-                decoration: const InputDecoration(labelText: "Type"),
-                value: state.gridSettings.type,
+              // Mode Selector
+              DropdownButtonFormField<GridMode>(
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: "Grid Mode",
+                  border: OutlineInputBorder(),
+                ),
+                value: state.gridSettings.activeMode,
                 onChanged: (val) {
-                  if (val != null) state.updateGridType(val);
+                  if (val != null) state.updateGridMode(val);
                 },
-                items: GridType.values
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
-                    .toList(),
+                items: [
+                  const DropdownMenuItem(
+                    value: GridMode.squareFixed,
+                    child: Text("Square (Fixed)"),
+                  ),
+                  const DropdownMenuItem(
+                    value: GridMode.square,
+                    child: Text("Square"),
+                  ),
+                  const DropdownMenuItem(
+                    value: GridMode.rectangularFixed,
+                    child: Text("Rectangle (Fixed)"),
+                  ),
+                  const DropdownMenuItem(
+                    value: GridMode.rectangular,
+                    child: Text("Rectangle"),
+                  ),
+                  const DropdownMenuItem(
+                    value: GridMode.circular,
+                    child: Text("Circle"),
+                  ),
+                ],
               ),
+              const SizedBox(height: 16),
 
-              // Size Mode
-              DropdownButtonFormField<SizeMode>(
-                decoration: const InputDecoration(labelText: "Size Mode"),
-                value: state.gridSettings.sizeMode,
-                onChanged: (val) {
-                  if (val != null) {
-                    state.gridSettings.sizeMode = val;
-                    state.updateGridSettings(state.gridSettings);
-                  }
-                },
-                items: SizeMode.values
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
-                    .toList(),
-              ),
-
-              // Controls based on type
-              if (state.gridSettings.type == GridType.rectangular) ...[
-                _buildSlider(
-                  context,
-                  "Spacing X",
-                  state.gridSettings.spacingX,
-                  10,
-                  500,
-                  (v) {
-                    state.gridSettings.spacingX = v;
-                    state.updateGridSettings(state.gridSettings);
-                  },
-                ),
-                _buildSlider(
-                  context,
-                  "Spacing Y",
-                  state.gridSettings.spacingY,
-                  10,
-                  500,
-                  (v) {
-                    state.gridSettings.spacingY = v;
-                    state.updateGridSettings(state.gridSettings);
-                  },
-                ),
-              ] else ...[
-                _buildSlider(
-                  context,
-                  "Radius Spacing",
-                  state.gridSettings.spacingRadius,
-                  10,
-                  500,
-                  (v) {
-                    state.gridSettings.spacingRadius = v;
-                    state.updateGridSettings(state.gridSettings);
-                  },
-                ),
-                _buildSlider(
-                  context,
-                  "Segments",
-                  state.gridSettings.segments.toDouble(),
-                  3,
-                  36,
-                  (v) {
-                    state.gridSettings.segments = v.toInt();
-                    state.updateGridSettings(state.gridSettings);
-                  },
-                  divisions: 33,
-                ),
-              ],
-
-              // Subdivision
-              SwitchListTile(
-                title: const Text("Subdivision"),
-                value: state.gridSettings.enableSubdivision,
-                onChanged: (v) {
-                  state.gridSettings.enableSubdivision = v;
-                  state.updateGridSettings(state.gridSettings);
-                },
-                contentPadding: EdgeInsets.zero,
-              ),
-              if (state.gridSettings.enableSubdivision)
-                _buildSlider(
-                  context,
-                  "Count",
-                  state.gridSettings.subdivisionCount.toDouble(),
-                  1,
-                  10,
-                  (v) {
-                    state.gridSettings.subdivisionCount = v.toInt();
-                    state.updateGridSettings(state.gridSettings);
-                  },
-                  divisions: 9,
-                ),
+              // Dynamic Inputs
+              ..._buildModeInputs(context, state),
 
               const Divider(),
-              const Text(
-                "Transform",
-                style: TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              _buildSlider(
-                context,
-                "Rotation",
-                state.gridSettings.rotation,
-                0,
-                6.28,
-                (v) {
-                  state.gridSettings.rotation = v;
-                  state.updateGridSettings(state.gridSettings);
-                },
-                label:
-                    "${(state.gridSettings.rotation * 180 / 3.14159).toStringAsFixed(0)}°",
-              ),
-              _buildSlider(
-                context,
-                "Scale",
-                state.gridSettings.scale,
-                0.1,
-                5.0,
-                (v) {
-                  state.gridSettings.scale = v;
-                  state.updateGridSettings(state.gridSettings);
-                },
-                label: "${state.gridSettings.scale.toStringAsFixed(2)}x",
-              ),
+
+              // Subdivision
+              _buildSubdivision(context, state),
             ],
           ),
         );
@@ -195,30 +138,224 @@ class ToolbarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSlider(
-    BuildContext context,
-    String title,
-    double value,
-    double min,
-    double max,
-    Function(double) onChanged, {
-    int? divisions,
-    String? label,
-  }) {
+  List<Widget> _buildModeInputs(BuildContext context, AppState state) {
+    final mode = state.gridSettings.activeMode;
+    final config = state.gridSettings.currentConfig;
+
+    List<Widget> inputs = [];
+
+    switch (mode) {
+      case GridMode.square:
+        if (config is SquareConfig) {
+          inputs.add(
+            _buildNumberInput(context, "Size", config.size, (v) {
+              config.size = v;
+              state.updateConfig(config);
+            }, defaultValue: SquareConfig.defaultSize),
+          );
+        }
+        break;
+      case GridMode.squareFixed:
+        if (config is SquareFixedConfig) {
+          inputs.add(
+            _buildIntInput(
+              context,
+              "Columns",
+              config.columns,
+              (v) {
+                config.columns = v;
+                state.updateConfig(config);
+              },
+              defaultValue: SquareFixedConfig.defaultColumns,
+            ),
+          );
+        }
+        break;
+      case GridMode.rectangular:
+        if (config is RectangularConfig) {
+          inputs.add(
+            _buildNumberInput(
+              context,
+              "Width",
+              config.width,
+              (v) {
+                config.width = v;
+                state.updateConfig(config);
+              },
+              defaultValue: RectangularConfig.defaultWidth,
+            ),
+          );
+          inputs.add(const SizedBox(height: 8));
+          inputs.add(
+            _buildNumberInput(
+              context,
+              "Height",
+              config.height,
+              (v) {
+                config.height = v;
+                state.updateConfig(config);
+              },
+              defaultValue: RectangularConfig.defaultHeight,
+            ),
+          );
+        }
+        break;
+      case GridMode.rectangularFixed:
+        if (config is RectangularFixedConfig) {
+          inputs.add(
+            _buildIntInput(
+              context,
+              "Columns",
+              config.columns,
+              (v) {
+                config.columns = v;
+                state.updateConfig(config);
+              },
+              defaultValue: RectangularFixedConfig.defaultColumns,
+            ),
+          );
+          inputs.add(const SizedBox(height: 8));
+          inputs.add(
+            _buildIntInput(
+              context,
+              "Rows",
+              config.rows,
+              (v) {
+                config.rows = v;
+                state.updateConfig(config);
+              },
+              defaultValue: RectangularFixedConfig.defaultRows,
+            ),
+          );
+        }
+        break;
+      case GridMode.circular:
+        if (config is CircularConfig) {
+          inputs.add(
+            _buildNumberInput(
+              context,
+              "Radius",
+              config.radius,
+              (v) {
+                config.radius = v;
+                state.updateConfig(config);
+              },
+              defaultValue: CircularConfig.defaultRadius,
+            ),
+          );
+          inputs.add(const SizedBox(height: 8));
+          inputs.add(
+            _buildIntInput(
+              context,
+              "Segments",
+              config.segments,
+              (v) {
+                config.segments = v;
+                state.updateConfig(config);
+              },
+              defaultValue: CircularConfig.defaultSegments,
+            ),
+          );
+        }
+        break;
+    }
+    return inputs;
+  }
+
+  Widget _buildSubdivision(BuildContext context, AppState state) {
+    final config = state.gridSettings.currentConfig;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        Text(
-          "$title: ${label ?? value.toStringAsFixed(1)}",
-          style: Theme.of(context).textTheme.bodySmall,
+        SwitchListTile(
+          title: const Text("Subdivision"),
+          value: config.enableSubdivision,
+          onChanged: (v) {
+            config.enableSubdivision = v;
+            state.updateConfig(config);
+          },
         ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: divisions,
-          onChanged: onChanged,
+        if (config.enableSubdivision)
+          _buildIntInput(context, "Count", config.subdivisionCount, (v) {
+            config.subdivisionCount = v;
+            state.updateConfig(config);
+          }, defaultValue: 2),
+      ],
+    );
+  }
+
+  Widget _buildNumberInput(
+    BuildContext context,
+    String label,
+    double value,
+    Function(double) onChanged, {
+    required double defaultValue,
+  }) {
+    var controller = TextEditingController(text: value.toStringAsFixed(1));
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: label,
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  onChanged(defaultValue);
+                  controller.text = defaultValue.toStringAsFixed(1);
+                },
+              ),
+            ),
+            onSubmitted: (val) {
+              final d = double.tryParse(val);
+              if (d != null) onChanged(d);
+            },
+            onTapOutside: (_) {
+              final d = double.tryParse(controller.text);
+              if (d != null) onChanged(d);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIntInput(
+    BuildContext context,
+    String label,
+    int value,
+    Function(int) onChanged, {
+    required int defaultValue,
+  }) {
+    var controller = TextEditingController(text: value.toString());
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: false),
+            decoration: InputDecoration(
+              labelText: label,
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  onChanged(defaultValue);
+                  controller.text = defaultValue.toString();
+                },
+              ),
+            ),
+            onSubmitted: (val) {
+              final d = int.tryParse(val);
+              if (d != null) onChanged(d);
+            },
+            onTapOutside: (_) {
+              final d = int.tryParse(controller.text);
+              if (d != null) onChanged(d);
+            },
+          ),
         ),
       ],
     );

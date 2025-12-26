@@ -137,12 +137,6 @@ class HomeScreen extends StatelessWidget {
                 (defaultTargetPlatform == TargetPlatform.linux ||
                     defaultTargetPlatform == TargetPlatform.windows ||
                     defaultTargetPlatform == TargetPlatform.macOS);
-            // On Web we also treat as desktop-like if wide usually?
-            // "on desktops, the tool bar is at the right side of the screen"
-            if (kIsWeb)
-              isDesktop =
-                  true; // Treat web as desktop regarding layout preference?
-            // "Right for Landscape/Wide/Desktop".
 
             bool isWide = constraints.maxWidth > constraints.maxHeight;
 

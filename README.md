@@ -61,6 +61,12 @@ An extra, alternative mode of adding grids is availble with circular grids.  Thi
 
 A circular grid is defined as concentric circles from a single point in the image where the circles are spaced at a chosen interval.  This circular grid has multiple segments running from the centre to the most outer ring of the circular grid.  A subgrid of segments and rings can also be added to rings of the circular grid to assist in detailed areas.
 
-### Exporting
 
 The image can be exported back to the users OS as a PNG file.  The original image is not modified, but instead the grid is composited with the original image and exported as a PNG file with the original file name and the suffix "_gridded" added to it.
+
+## V2 Features
+- **Responsive Toolbar**: Automatically positions the toolbar (bottom or right) based on screen orientation and aspect ratio.
+- **Direct Manipulation**:
+    - **Scale**: Pinch to zoom (Touch) or Mouse Wheel (Desktop).
+    - **Move**: Drag to pan grid.
+    - **Rotate**: Twist (Touch) or Right-Click Drag (Desktop).

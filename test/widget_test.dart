@@ -20,12 +20,12 @@ void main() {
       ),
     );
 
-    // Verify that our app bar title is present.
-    expect(find.text('Proportion'), findsOneWidget);
-
     // Verify we have action buttons
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
-    expect(find.byIcon(Icons.settings), findsOneWidget);
+    expect(find.byIcon(Icons.save_alt), findsOneWidget);
+
+    // Verify Grid Settings header is present (part of Toolbar)
+    expect(find.text('Grid Settings'), findsOneWidget);
 
     // Verify no image selected initially
     expect(find.text('No image selected'), findsOneWidget);

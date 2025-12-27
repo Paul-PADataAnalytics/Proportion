@@ -164,10 +164,17 @@ class ToolbarWidget extends StatelessWidget {
         if (config is SquareFixedConfig) {
           if (isMobile) {
             inputs.add(
-              _buildSliderInput(context, "Columns", config.columns, (v) {
-                config.columns = v;
-                state.updateConfig(config);
-              }),
+              _buildSliderInput(
+                context,
+                "Columns",
+                config.columns,
+                (v) {
+                  config.columns = v;
+                  state.updateConfig(config);
+                },
+                min: 2,
+                max: 15,
+              ),
             );
           } else {
             inputs.add(
@@ -218,17 +225,31 @@ class ToolbarWidget extends StatelessWidget {
         if (config is RectangularFixedConfig) {
           if (isMobile) {
             inputs.add(
-              _buildSliderInput(context, "Columns", config.columns, (v) {
-                config.columns = v;
-                state.updateConfig(config);
-              }),
+              _buildSliderInput(
+                context,
+                "Columns",
+                config.columns,
+                (v) {
+                  config.columns = v;
+                  state.updateConfig(config);
+                },
+                min: 2,
+                max: 15,
+              ),
             );
             inputs.add(const SizedBox(height: 8));
             inputs.add(
-              _buildSliderInput(context, "Rows", config.rows, (v) {
-                config.rows = v;
-                state.updateConfig(config);
-              }),
+              _buildSliderInput(
+                context,
+                "Rows",
+                config.rows,
+                (v) {
+                  config.rows = v;
+                  state.updateConfig(config);
+                },
+                min: 2,
+                max: 20,
+              ),
             );
           } else {
             inputs.add(

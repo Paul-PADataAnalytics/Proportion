@@ -154,7 +154,7 @@ jobs:
       
       - name: Rename APK
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk Proportion-Android. apk
+          cp build/app/outputs/flutter-apk/app-release.apk Proportion-Android.apk
       
       - name: Upload Android APK artifact
         uses: actions/upload-artifact@v4

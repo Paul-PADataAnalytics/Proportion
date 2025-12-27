@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../models/app_state.dart';
@@ -142,6 +143,10 @@ class ToolbarWidget extends StatelessWidget {
     final mode = state.gridSettings.activeMode;
     final config = state.gridSettings.currentConfig;
 
+    bool isMobile =
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+
     List<Widget> inputs = [];
 
     switch (mode) {
@@ -157,18 +162,27 @@ class ToolbarWidget extends StatelessWidget {
         break;
       case GridMode.squareFixed:
         if (config is SquareFixedConfig) {
-          inputs.add(
-            _buildIntInput(
-              context,
-              "Columns",
-              config.columns,
-              (v) {
+          if (isMobile) {
+            inputs.add(
+              _buildSliderInput(context, "Columns", config.columns, (v) {
                 config.columns = v;
                 state.updateConfig(config);
-              },
-              defaultValue: SquareFixedConfig.defaultColumns,
-            ),
-          );
+              }),
+            );
+          } else {
+            inputs.add(
+              _buildIntInput(
+                context,
+                "Columns",
+                config.columns,
+                (v) {
+                  config.columns = v;
+                  state.updateConfig(config);
+                },
+                defaultValue: SquareFixedConfig.defaultColumns,
+              ),
+            );
+          }
         }
         break;
       case GridMode.rectangular:
@@ -202,31 +216,47 @@ class ToolbarWidget extends StatelessWidget {
         break;
       case GridMode.rectangularFixed:
         if (config is RectangularFixedConfig) {
-          inputs.add(
-            _buildIntInput(
-              context,
-              "Columns",
-              config.columns,
-              (v) {
+          if (isMobile) {
+            inputs.add(
+              _buildSliderInput(context, "Columns", config.columns, (v) {
                 config.columns = v;
                 state.updateConfig(config);
-              },
-              defaultValue: RectangularFixedConfig.defaultColumns,
-            ),
-          );
-          inputs.add(const SizedBox(height: 8));
-          inputs.add(
-            _buildIntInput(
-              context,
-              "Rows",
-              config.rows,
-              (v) {
+              }),
+            );
+            inputs.add(const SizedBox(height: 8));
+            inputs.add(
+              _buildSliderInput(context, "Rows", config.rows, (v) {
                 config.rows = v;
                 state.updateConfig(config);
-              },
-              defaultValue: RectangularFixedConfig.defaultRows,
-            ),
-          );
+              }),
+            );
+          } else {
+            inputs.add(
+              _buildIntInput(
+                context,
+                "Columns",
+                config.columns,
+                (v) {
+                  config.columns = v;
+                  state.updateConfig(config);
+                },
+                defaultValue: RectangularFixedConfig.defaultColumns,
+              ),
+            );
+            inputs.add(const SizedBox(height: 8));
+            inputs.add(
+              _buildIntInput(
+                context,
+                "Rows",
+                config.rows,
+                (v) {
+                  config.rows = v;
+                  state.updateConfig(config);
+                },
+                defaultValue: RectangularFixedConfig.defaultRows,
+              ),
+            );
+          }
         }
         break;
       case GridMode.circular:
@@ -356,6 +386,46 @@ class ToolbarWidget extends StatelessWidget {
               if (d != null) onChanged(d);
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSliderInput(
+    BuildContext context,
+    String label,
+    int value,
+    Function(int) onChanged, {
+    int min = 1,
+    int max = 50,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                value.toString(),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        Slider(
+          value: value.toDouble().clamp(min.toDouble(), max.toDouble()),
+          min: min.toDouble(),
+          max: max.toDouble(),
+          divisions: max - min,
+          label: value.toString(),
+          onChanged: (double val) {
+            onChanged(val.round());
+          },
         ),
       ],
     );

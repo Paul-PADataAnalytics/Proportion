@@ -125,7 +125,10 @@ class ImageService {
 
     return GridDrawParams(
       activeModeIndex: modeIndex,
-      colorValue: settings.color.value,
+      colorValue: settings.color.toARGB32(),
+      subdivisionColorValue: settings.subdivisionColor.toARGB32(),
+      enableSubdivision: config.enableSubdivision,
+      subdivisionCount: config.subdivisionCount,
       size: size,
       columns: columns,
       rows: rows,
@@ -222,6 +225,9 @@ class ImageService {
 class GridDrawParams {
   final int activeModeIndex;
   final int colorValue;
+  final int subdivisionColorValue;
+  final bool enableSubdivision;
+  final int subdivisionCount;
 
   final int size;
   final int columns;
@@ -234,6 +240,9 @@ class GridDrawParams {
   GridDrawParams({
     required this.activeModeIndex,
     required this.colorValue,
+    required this.subdivisionColorValue,
+    required this.enableSubdivision,
+    required this.subdivisionCount,
     this.size = 0,
     this.columns = 0,
     this.rows = 0,
@@ -308,15 +317,54 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
   // 0: square, 1: squareFixed, 2: rect, 3: rectFixed, 4: circular
   final modeIndex = params.activeModeIndex;
 
+  // Prepare subdivision color if needed
+  img_lib.ColorRgba8? subdivColor;
+  if (params.enableSubdivision && params.subdivisionCount > 0) {
+    final subUiColor = params.subdivisionColorValue;
+    final subA = (subUiColor >> 24) & 0xFF;
+    final subR = (subUiColor >> 16) & 0xFF;
+    final subG = (subUiColor >> 8) & 0xFF;
+    final subB = (subUiColor) & 0xFF;
+    subdivColor = img_lib.ColorRgba8(subR, subG, subB, subA);
+  }
+
   if (modeIndex == 0) {
     // Square
     int size = params.size;
     if (size <= 0) size = 50;
     for (int x = 0; x < w; x += size) {
       img_lib.drawLine(image, x1: x, y1: 0, x2: x, y2: h, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && x + size < w) {
+        _drawSubdivisions(
+          image,
+          x,
+          x + size,
+          0,
+          h,
+          true,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
     for (int y = 0; y < h; y += size) {
       img_lib.drawLine(image, x1: 0, y1: y, x2: w, y2: y, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && y + size < h) {
+        _drawSubdivisions(
+          image,
+          0,
+          w,
+          y,
+          y + size,
+          false,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
   } else if (modeIndex == 1) {
     // SquareFixed
@@ -326,12 +374,42 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
     for (int i = 0; i <= cols; i++) {
       int x = (i * cellSize).round();
       img_lib.drawLine(image, x1: x, y1: 0, x2: x, y2: h, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && i < cols) {
+        int nextX = ((i + 1) * cellSize).round();
+        _drawSubdivisions(
+          image,
+          x,
+          nextX,
+          0,
+          h,
+          true,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
 
     int rows = (h / cellSize).ceil();
     for (int i = 0; i <= rows; i++) {
       int y = (i * cellSize).round();
       img_lib.drawLine(image, x1: 0, y1: y, x2: w, y2: y, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && i < rows) {
+        int nextY = ((i + 1) * cellSize).round();
+        _drawSubdivisions(
+          image,
+          0,
+          w,
+          y,
+          nextY,
+          false,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
   } else if (modeIndex == 2) {
     // Rectangular
@@ -341,9 +419,37 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
     if (ch <= 0) ch = 50;
     for (int x = 0; x < w; x += cw) {
       img_lib.drawLine(image, x1: x, y1: 0, x2: x, y2: h, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && x + cw < w) {
+        _drawSubdivisions(
+          image,
+          x,
+          x + cw,
+          0,
+          h,
+          true,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
     for (int y = 0; y < h; y += ch) {
       img_lib.drawLine(image, x1: 0, y1: y, x2: w, y2: y, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && y + ch < h) {
+        _drawSubdivisions(
+          image,
+          0,
+          w,
+          y,
+          y + ch,
+          false,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
   } else if (modeIndex == 3) {
     // RectangularFixed
@@ -352,10 +458,40 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
     for (int i = 0; i <= params.columns; i++) {
       int x = (i * cw).round();
       img_lib.drawLine(image, x1: x, y1: 0, x2: x, y2: h, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && i < params.columns) {
+        int nextX = ((i + 1) * cw).round();
+        _drawSubdivisions(
+          image,
+          x,
+          nextX,
+          0,
+          h,
+          true,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
     for (int i = 0; i <= params.rows; i++) {
       int y = (i * ch).round();
       img_lib.drawLine(image, x1: 0, y1: y, x2: w, y2: y, color: gridColor);
+
+      // Subdivisions
+      if (subdivColor != null && i < params.rows) {
+        int nextY = ((i + 1) * ch).round();
+        _drawSubdivisions(
+          image,
+          0,
+          w,
+          y,
+          nextY,
+          false,
+          params.subdivisionCount,
+          subdivColor,
+        );
+      }
     }
   } else if (modeIndex == 4) {
     // Circular
@@ -387,6 +523,43 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
           color: gridColor,
         );
       }
+    }
+  }
+}
+
+void _drawSubdivisions(
+  img_lib.Image image,
+  int start,
+  int end,
+  int crossStart,
+  int crossEnd,
+  bool isVertical,
+  int count,
+  img_lib.ColorRgba8 subdivColor,
+) {
+  if (count <= 0) return;
+
+  double step = (end - start) / count;
+  for (int i = 1; i < count; i++) {
+    int pos = (start + step * i).round();
+    if (isVertical) {
+      img_lib.drawLine(
+        image,
+        x1: pos,
+        y1: crossStart,
+        x2: pos,
+        y2: crossEnd,
+        color: subdivColor,
+      );
+    } else {
+      img_lib.drawLine(
+        image,
+        x1: crossStart,
+        y1: pos,
+        x2: crossEnd,
+        y2: pos,
+        color: subdivColor,
+      );
     }
   }
 }

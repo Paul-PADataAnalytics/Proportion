@@ -132,6 +132,31 @@ class ToolbarWidget extends StatelessWidget {
 
               // Subdivision
               _buildSubdivision(context, state),
+
+              const Divider(),
+
+              // Color Settings
+              _buildColorPicker(
+                context,
+                state,
+                "Grid Line Color",
+                state.gridSettings.color,
+                (color) {
+                  state.gridSettings.color = color;
+                  state.updateGridSettings(state.gridSettings);
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildColorPicker(
+                context,
+                state,
+                "Subdivision Color",
+                state.gridSettings.subdivisionColor,
+                (color) {
+                  state.gridSettings.subdivisionColor = color;
+                  state.updateGridSettings(state.gridSettings);
+                },
+              ),
             ],
           ),
         );
@@ -449,6 +474,117 @@ class ToolbarWidget extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildColorPicker(
+    BuildContext context,
+    AppState state,
+    String label,
+    Color currentColor,
+    Function(Color) onColorChanged,
+  ) {
+    return InkWell(
+      onTap: () {
+        _showColorPickerDialog(context, currentColor, onColorChanged);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            Container(
+              width: 40,
+              height: 24,
+              decoration: BoxDecoration(
+                color: currentColor,
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showColorPickerDialog(
+    BuildContext context,
+    Color currentColor,
+    Function(Color) onColorChanged,
+  ) {
+    // Predefined color palette
+    final colors = [
+      Colors.black,
+      Colors.white,
+      Colors.grey,
+      Colors.red,
+      Colors.pink,
+      Colors.purple,
+      Colors.deepPurple,
+      Colors.indigo,
+      Colors.blue,
+      Colors.lightBlue,
+      Colors.cyan,
+      Colors.teal,
+      Colors.green,
+      Colors.lightGreen,
+      Colors.lime,
+      Colors.yellow,
+      Colors.amber,
+      Colors.orange,
+      Colors.deepOrange,
+      Colors.brown,
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Select Color"),
+        content: SizedBox(
+          width: 300,
+          child: GridView.builder(
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: colors.length,
+            itemBuilder: (context, index) {
+              final color = colors[index];
+              final isSelected = color == currentColor;
+              return InkWell(
+                onTap: () {
+                  onColorChanged(color);
+                  Navigator.pop(ctx);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    border: Border.all(
+                      color: isSelected ? Colors.blue : Colors.grey,
+                      width: isSelected ? 3 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
     );
   }
 }

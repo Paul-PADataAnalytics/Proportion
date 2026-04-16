@@ -211,10 +211,10 @@ class GridPainter extends CustomPainter {
       if (subdivide && subCount > 0 && y + spacingY <= imageSize.height) {
         _drawSubdivs(
           canvas,
-          0,
-          imageSize.width,
           y,
           y + spacingY,
+          0,
+          imageSize.width,
           false,
           subCount,
           paint,

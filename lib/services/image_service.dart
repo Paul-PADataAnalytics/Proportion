@@ -356,10 +356,10 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
       if (subdivColor != null && y + size < h) {
         _drawSubdivisions(
           image,
-          0,
-          w,
           y,
           y + size,
+          0,
+          w,
           false,
           params.subdivisionCount,
           subdivColor,
@@ -401,10 +401,10 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
         int nextY = ((i + 1) * cellSize).round();
         _drawSubdivisions(
           image,
-          0,
-          w,
           y,
           nextY,
+          0,
+          w,
           false,
           params.subdivisionCount,
           subdivColor,
@@ -441,10 +441,10 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
       if (subdivColor != null && y + ch < h) {
         _drawSubdivisions(
           image,
-          0,
-          w,
           y,
           y + ch,
+          0,
+          w,
           false,
           params.subdivisionCount,
           subdivColor,
@@ -483,10 +483,10 @@ void _drawGridOnImage(img_lib.Image image, GridDrawParams params) {
         int nextY = ((i + 1) * ch).round();
         _drawSubdivisions(
           image,
-          0,
-          w,
           y,
           nextY,
+          0,
+          w,
           false,
           params.subdivisionCount,
           subdivColor,
